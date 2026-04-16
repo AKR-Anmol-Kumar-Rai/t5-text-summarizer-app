@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Précis — AI Document Summarizer</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Background -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">Précis</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#" class="nav-link">Docs</a>
+      <a href="#" class="nav-link">API</a>
+      <button class="btn-pill" id="settingsBtn">⚙ Settings</button>
+    </nav>
+  </header>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>API Configuration</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Hugging Face API Token</label>
+        <input type="password" id="hfToken" class="field-input" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" />
+        <label class="field-label" style="margin-top:1.2rem;">Model ID</label>
+        <input type="text" id="modelId" class="field-input" placeholder="facebook/bart-large-cnn" />
+        <p class="field-hint">Enter your Hugging Face model ID exactly as it appears on the Hub.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-save" id="saveSettings">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">AI-Powered Intelligence</div>
+    <h1 class="hero-title">
+      Transform lengthy text<br />
+      <em>into sharp insight.</em>
+    </h1>
+    <p class="hero-sub">Paste any document, article, or report. Your model distills it to its essence in seconds.</p>
+  </section>
+
+  <!-- Main App -->
+  <main class="app-container">
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="control-group">
+        <label class="control-label">Summary Length</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-length="short">Short</button>
+          <button class="toggle-btn" data-length="medium">Medium</button>
+          <button class="toggle-btn" data-length="long">Long</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label">Word Count</label>
+        <div class="word-count-display" id="wordCount">0 words</div>
+      </div>
+      <button class="btn-clear" id="clearBtn">Clear ✕</button>
+    </div>
+
+    <!-- Input / Output Panel -->
+    <div class="panels">
+
+      <!-- Input Panel -->
+      <div class="panel panel-input">
+        <div class="panel-header">
+          <span class="panel-title">Source Text</span>
+          <button class="panel-action" id="pasteBtn">⊕ Paste</button>
+        </div>
+        <textarea
+          id="inputText"
+          class="panel-textarea"
+          placeholder="Paste your document, article, or any long-form text here…&#10;&#10;Minimum 50 words recommended for best results."
+          spellcheck="false"
+        ></textarea>
+        <div class="panel-footer">
+          <span class="char-count" id="charCount">0 characters</span>
+          <span class="min-hint">Minimum 50 words</span>
+        </div>
+      </div>
+
+      <!-- Divider & Summarize Button -->
+      <div class="panel-divider">
+        <button class="btn-summarize" id="summarizeBtn">
+          <span class="btn-text">Summarize</span>
+          <span class="btn-arrow">→</span>
+        </button>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- Output Panel -->
+      <div class="panel panel-output">
+        <div class="panel-header">
+          <span class="panel-title">Summary</span>
+          <div class="output-actions">
+            <button class="panel-action" id="copyBtn" disabled>⊙ Copy</button>
+            <button class="panel-action" id="downloadBtn" disabled>↓ Export</button>
+          </div>
+        </div>
+        <div class="output-area" id="outputArea">
+
+          <!-- Idle State -->
+          <div class="idle-state" id="idleState">
+            <div class="idle-icon">◈</div>
+            <p class="idle-text">Your summary will appear here.</p>
+            <p class="idle-hint">Configure your model in ⚙ Settings before summarizing.</p>
+          </div>
+
+          <!-- Loading State -->
+          <div class="loading-state hidden" id="loadingState">
+            <div class="spinner">
+              <div class="spinner-ring"></div>
+              <div class="spinner-core">⬡</div>
+            </div>
+            <p class="loading-text">Analyzing document…</p>
+            <div class="loading-steps">
+              <span class="step active" id="step1">Tokenizing</span>
+              <span class="step-sep">›</span>
+              <span class="step" id="step2">Encoding</span>
+              <span class="step-sep">›</span>
+              <span class="step" id="step3">Generating</span>
+            </div>
+          </div>
+
+          <!-- Result State -->
+          <div class="result-state hidden" id="resultState">
+            <div class="result-meta">
+              <span class="result-badge">Summary</span>
+              <span class="result-ratio" id="compressionRatio"></span>
+            </div>
+            <p class="result-text" id="resultText"></p>
+            <div class="result-stats" id="resultStats"></div>
+          </div>
+
+          <!-- Error State -->
+          <div class="error-state hidden" id="errorState">
+            <div class="error-icon">⚠</div>
+            <p class="error-title" id="errorTitle">Something went wrong</p>
+            <p class="error-msg" id="errorMsg"></p>
+            <button class="btn-retry" id="retryBtn">Try Again</button>
+          </div>
+
+        </div>
+        <div class="panel-footer">
+          <span class="status-dot" id="statusDot"></span>
+          <span class="status-text" id="statusText">Ready</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- History Section -->
+    <div class="history-section" id="historySection">
+      <div class="history-header">
+        <span class="history-title">Recent Summaries</span>
+        <button class="btn-clear-history" id="clearHistoryBtn">Clear History</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>Powered by <strong>Hugging Face Inference API</strong> · Built with Précis UI</p>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
